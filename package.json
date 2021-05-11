@@ -1,0 +1,29 @@
+{
+  "name": "receitas_da_avo",
+  "version": "1.0.0",
+  "description": "Recipe app where the user can after login see and save recipes",
+  "main": "index.html",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratzPereira/receitas_d-avo.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ratzPereira/receitas_d-avo/issues"
+  },
+  "homepage": "https://github.com/ratzPereira/receitas_d-avo#readme",
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.0.0-beta.2",
+    "parcel": "^2.0.0-beta.2",
+    "sass": "^1.32.12"
+  },
+  "dependencies": {
+    "core-js": "^3.12.1",
+    "regenerator-runtime": "^0.13.7"
+  }
+}
