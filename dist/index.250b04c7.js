@@ -452,6 +452,8 @@ require('core-js/stable');
 require('regenerator-runtime/runtime');
 var _viewsResultsView = require('./views/resultsView');
 var _viewsResultsViewDefault = _parcelHelpers.interopDefault(_viewsResultsView);
+var _viewsPaginationView = require('./views/paginationView');
+var _viewsPaginationViewDefault = _parcelHelpers.interopDefault(_viewsPaginationView);
 const controlRecipes = async function () {
   try {
     const id = window.location.hash.slice(1);
@@ -473,18 +475,28 @@ const controlSearchResults = async function () {
     const query = _viewsSearchViewDefault.default.getQuery();
     if (!query) return;
     await _model.loadSearchResults(query);
-    _viewsResultsViewDefault.default.render(_model.state.search.results);
+    // Render results
+    _viewsResultsViewDefault.default.render(_model.getSearchResultsPage());
+    // Render initial pagination buttons
+    _viewsPaginationViewDefault.default.render(_model.state.search);
   } catch (e) {
     console.log(e.message);
   }
 };
+const controlPagination = function (goToPage) {
+  // Render NEW results
+  _viewsResultsViewDefault.default.render(_model.getSearchResultsPage(goToPage));
+  // Render NEW pagination buttons
+  _viewsPaginationViewDefault.default.render(_model.state.search);
+};
 const init = function () {
   _viewsSearchViewDefault.default.addHandlerSearch(controlSearchResults);
   _viewsRecipeViewDefault.default.addHandlerRender(controlRecipes);
+  _viewsPaginationViewDefault.default.addHandlerClick(controlPagination);
 };
 init();
 
-},{"@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","core-js/stable":"1PFvP","regenerator-runtime/runtime":"62Qib","./views/recipeView":"9e6b9","./model":"1hp6y","./views/searchView":"3rYQ6","./views/resultsView":"17PYN"}],"5gA8y":[function(require,module,exports) {
+},{"@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","core-js/stable":"1PFvP","regenerator-runtime/runtime":"62Qib","./views/recipeView":"9e6b9","./model":"1hp6y","./views/searchView":"3rYQ6","./views/resultsView":"17PYN","./views/paginationView":"5u5Fw"}],"5gA8y":[function(require,module,exports) {
 "use strict";
 
 exports.interopDefault = function (a) {
@@ -13079,6 +13091,9 @@ _parcelHelpers.export(exports, "loadRecipe", function () {
 _parcelHelpers.export(exports, "loadSearchResults", function () {
   return loadSearchResults;
 });
+_parcelHelpers.export(exports, "getSearchResultsPage", function () {
+  return getSearchResultsPage;
+});
 require('regenerator-runtime');
 var _config = require('./config');
 var _helpers = require('./helpers');
@@ -13086,7 +13101,9 @@ const state = {
   recipe: {},
   search: {
     query: '',
-    results: []
+    results: [],
+    page: 1,
+    resultPerPage: _config.NUM_OF_PAGES
   }
 };
 const loadRecipe = async id => {
@@ -13126,6 +13143,12 @@ const loadSearchResults = async function (query) {
     throw err;
   }
 };
+const getSearchResultsPage = function (page = state.search.page) {
+  state.search.page = page;
+  const start = (page - 1) * state.search.resultPerPage;
+  const end = page * state.search.resultPerPage;
+  return state.search.results.slice(start, end);
+};
 
 },{"regenerator-runtime":"62Qib","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","./config":"6pr2F","./helpers":"581KF"}],"6pr2F":[function(require,module,exports) {
 var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
@@ -13136,8 +13159,12 @@ _parcelHelpers.export(exports, "API_URL", function () {
 _parcelHelpers.export(exports, "TIMEOUT_SEC", function () {
   return TIMEOUT_SEC;
 });
+_parcelHelpers.export(exports, "NUM_OF_PAGES", function () {
+  return NUM_OF_PAGES;
+});
 const API_URL = `https://forkify-api.herokuapp.com/api/v2/recipes/`;
 const TIMEOUT_SEC = 10;
+const NUM_OF_PAGES = 10;
 
 },{"@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y"}],"581KF":[function(require,module,exports) {
 var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
@@ -13246,6 +13273,82 @@ class ResultsView extends _ViewDefault.default {
 }
 exports.default = new ResultsView();
 
-},{"./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","url:../../img/icons.svg":"3t5dV"}]},["7BONy","3miIZ"], "3miIZ", "parcelRequirea7c1")
+},{"./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","url:../../img/icons.svg":"3t5dV"}],"5u5Fw":[function(require,module,exports) {
+var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
+_parcelHelpers.defineInteropFlag(exports);
+var _urlImgIconsSvg = require('url:../../img/icons.svg');
+var _urlImgIconsSvgDefault = _parcelHelpers.interopDefault(_urlImgIconsSvg);
+var _View = require('./View');
+var _ViewDefault = _parcelHelpers.interopDefault(_View);
+function _defineProperty(obj, key, value) {
+  if ((key in obj)) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
+}
+class PaginationView extends _ViewDefault.default {
+  constructor(...args) {
+    super(...args);
+    _defineProperty(this, "_parentElement", document.querySelector('.pagination'));
+  }
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--inline');
+      if (!btn) return;
+      const goToPage = +btn.dataset.goto;
+      handler(goToPage);
+    });
+  }
+  _generateMarkup() {
+    const curPage = this._data.page;
+    const numPages = Math.ceil(this._data.results.length / this._data.resultPerPage);
+    // Page 1, and there are other pages
+    if (curPage === 1 && numPages > 1) {
+      return `<button data-goto="${curPage + 1}" class="btn--inline pagination__btn--next">
+            <span>Page ${curPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${_urlImgIconsSvgDefault.default}#icon-arrow-right"></use>
+            </svg>
+          </button>`;
+    }
+    // Last page
+    if (curPage === numPages) {
+      return `<button data-goto="${curPage - 1}" class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${_urlImgIconsSvgDefault.default}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${curPage - 1}</span>
+          </button>`;
+    }
+    // Other Page
+    if (curPage < numPages) {
+      return `<button  data-goto="${curPage - 1}" class="btn--inline pagination__btn--prev">
+            <svg class="search__icon">
+              <use href="${_urlImgIconsSvgDefault.default}#icon-arrow-left"></use>
+            </svg>
+            <span>Page ${curPage - 1}</span>
+          </button>
+          <button data-goto="${curPage + 1}" class="btn--inline pagination__btn--next">
+            <span>Page ${curPage + 1}</span>
+            <svg class="search__icon">
+              <use href="${_urlImgIconsSvgDefault.default}#icon-arrow-right"></use>
+            </svg>
+          </button>
+`;
+    }
+    // Page 1, and there are NOT other pages
+    return '';
+  }
+}
+exports.default = new PaginationView();
+
+},{"url:../../img/icons.svg":"3t5dV","./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y"}]},["7BONy","3miIZ"], "3miIZ", "parcelRequirea7c1")
 
 //# sourceMappingURL=index.250b04c7.js.map
