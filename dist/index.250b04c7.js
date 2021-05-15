@@ -489,10 +489,18 @@ const controlPagination = function (goToPage) {
   // Render NEW pagination buttons
   _viewsPaginationViewDefault.default.render(_model.state.search);
 };
+const controlServings = function (newServings) {
+  // Update the recipe servings ( in state)
+  _model.updateServings(newServings);
+  // update the view
+  _viewsRecipeViewDefault.default.render(_model.state.recipe);
+  console.log(_model.state.recipe);
+};
 const init = function () {
   _viewsSearchViewDefault.default.addHandlerSearch(controlSearchResults);
   _viewsRecipeViewDefault.default.addHandlerRender(controlRecipes);
   _viewsPaginationViewDefault.default.addHandlerClick(controlPagination);
+  _viewsRecipeViewDefault.default.addHandlerUpdateServings(controlServings);
 };
 init();
 
@@ -12501,6 +12509,14 @@ class RecipeView extends _ViewDefault.default {
   addHandlerRender(handler) {
     ['hashchange', 'load'].forEach(e => window.addEventListener(e, handler));
   }
+  addHandlerUpdateServings(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--update-servings');
+      if (!btn) return;
+      const updateTo = +btn.dataset.updateTo;
+      if (updateTo > 0) handler(updateTo);
+    });
+  }
   _generateMarkup() {
     return `
       <figure class="recipe__fig">
@@ -12526,12 +12542,12 @@ class RecipeView extends _ViewDefault.default {
             <span class="recipe__info-text">servings</span>
 
             <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
+              <button data-update-to="${this._data.servings - 1}" class="btn--tiny btn--update-servings">
                 <svg>
                   <use href="${_urlImgIconsSvgDefault.default}#icon-minus-circle"></use>
                 </svg>
               </button>
-              <button class="btn--tiny btn--increase-servings">
+              <button data-update-to="${this._data.servings + 1}" class="btn--tiny btn--update-servings">
                 <svg>
                   <use href="${_urlImgIconsSvgDefault.default}#icon-plus-circle"></use>
                 </svg>
@@ -13094,6 +13110,9 @@ _parcelHelpers.export(exports, "loadSearchResults", function () {
 _parcelHelpers.export(exports, "getSearchResultsPage", function () {
   return getSearchResultsPage;
 });
+_parcelHelpers.export(exports, "updateServings", function () {
+  return updateServings;
+});
 require('regenerator-runtime');
 var _config = require('./config');
 var _helpers = require('./helpers');
@@ -13148,6 +13167,12 @@ const getSearchResultsPage = function (page = state.search.page) {
   const start = (page - 1) * state.search.resultPerPage;
   const end = page * state.search.resultPerPage;
   return state.search.results.slice(start, end);
+};
+const updateServings = function (newServings) {
+  state.recipe.ingredients.forEach(ing => {
+    ing.quantity = ing.quantity * newServings / state.recipe.servings;
+  });
+  state.recipe.servings = newServings;
 };
 
 },{"regenerator-runtime":"62Qib","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","./config":"6pr2F","./helpers":"581KF"}],"6pr2F":[function(require,module,exports) {
