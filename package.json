@@ -2,10 +2,10 @@
   "name": "receitas_da_avo",
   "version": "1.0.0",
   "description": "Recipe app where the user can after login see and save recipes",
-  "main": "index.html",
+  "default": "index.html",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build index.html --dist-dir ./dist"
   },
   "repository": {
     "type": "git",
