@@ -13,6 +13,37 @@ export default class View {
     this._parentElement.insertAdjacentHTML('afterbegin', markup);
   }
 
+  update(data) {
+    this._data = data;
+    const newMarkup = this._generateMarkup();
+
+    //convert the markup string to a real DOM object, so we can use that to compare
+    const newDOM = document.createRange().createContextualFragment(newMarkup);
+    const newElement = Array.from(newDOM.querySelectorAll('*'));
+
+    //select all
+    const curElement = Array.from(this._parentElement.querySelectorAll('*'));
+
+    newElement.forEach((newEl, i) => {
+      const curEl = curElement[i];
+
+      //update changed TEXT
+      if (
+        !newEl.isEqualNode(curEl) &&
+        newEl.firstChild?.nodeValue.trim() !== ''
+      ) {
+        curEl.textContent = newEl.textContent;
+      }
+
+      // update changed ATTRIBUTES
+      if (!newEl.isEqualNode(curEl)) {
+        Array.from(newEl.attributes).forEach(att => {
+          curEl.setAttribute(att.name, att.value);
+        });
+      }
+    });
+  }
+
   _clear() {
     this._parentElement.innerHTML = '';
   }

@@ -17,6 +17,9 @@ const controlRecipes = async function () {
     //# Render the spinner while we fetch data
     recipeView.renderSpinner();
 
+    //0 Resolve View to mark selected search result
+    resultsView.update(model.getSearchResultsPage());
+
     // 1) Load the recipe
     await model.loadRecipe(id);
 
@@ -60,8 +63,8 @@ const controlServings = function (newServings) {
   model.updateServings(newServings);
 
   //update the view
-  recipeView.render(model.state.recipe);
-  console.log(model.state.recipe);
+  //recipeView.render(model.state.recipe);
+  recipeView.update(model.state.recipe);
 };
 
 const init = function () {
