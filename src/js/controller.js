@@ -9,6 +9,7 @@ import resultsView from './views/resultsView';
 import paginationView from './views/paginationView';
 import bookmarksView from './views/bookmarksView';
 import addRecipeView from './views/addRecipeView';
+import { MODAL_CLOSE } from './config';
 
 const controlRecipes = async function () {
   try {
@@ -88,7 +89,35 @@ const controlBookmark = function () {
   bookmarksView.render(model.state.bookmarks);
 };
 
-const controlAddRecipe = function (newRecipe) {};
+const controlAddRecipe = async function (newRecipe) {
+  try {
+    //spinning the spinner
+    addRecipeView.renderSpinner();
+
+    //Upload recipe data
+    await model.uploadRecipe(newRecipe);
+
+    //Render the uploaded Recipe
+    recipeView.render(model.state.recipe);
+
+    //display success message
+    addRecipeView.renderMessage();
+
+    //Render the bookmark view
+    bookmarksView.render(model.state.bookmarks);
+
+    //change id in the URL after we upload the recipe
+    window.history.pushState(null, '', `#${model.state.recipe.id}`);
+
+    //close form window
+    setTimeout(function () {
+      addRecipeView.toggleWindow();
+    }, MODAL_CLOSE * 1000);
+  } catch (e) {
+    console.log(e.message);
+    addRecipeView.renderError(e.message);
+  }
+};
 
 const init = function () {
   bookmarksView.addHandlerRender(controlBookmark);

@@ -3,6 +3,8 @@ import View from './View';
 
 class AddRecipeView extends View {
   _parentElement = document.querySelector('.upload');
+  _successMessage = 'Recipe successfully uploaded';
+
   _window = document.querySelector('.add-recipe-window');
   _overlay = document.querySelector('.overlay');
   _btnOpen = document.querySelector('.nav__btn--add-recipe');
@@ -14,13 +16,13 @@ class AddRecipeView extends View {
     this._addHandlerHideWindow();
   }
 
-  _addHandlerShowWindow() {
-    this._btnOpen.addEventListener('click', this.toggleWindow.bind(this));
-  }
-
   toggleWindow() {
     this._window.classList.toggle('hidden');
     this._overlay.classList.toggle('hidden');
+  }
+
+  _addHandlerShowWindow() {
+    this._btnOpen.addEventListener('click', this.toggleWindow.bind(this));
   }
 
   _addHandlerHideWindow() {
@@ -35,8 +37,8 @@ class AddRecipeView extends View {
       const dataArray = [...new FormData(this)];
 
       //we create an object from the array
-      const data = Object.entries(dataArray);
-
+      const data = Object.fromEntries(dataArray);
+      console.log(data);
       handler(data);
     });
   }
