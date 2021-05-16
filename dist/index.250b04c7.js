@@ -454,6 +454,8 @@ var _viewsResultsView = require('./views/resultsView');
 var _viewsResultsViewDefault = _parcelHelpers.interopDefault(_viewsResultsView);
 var _viewsPaginationView = require('./views/paginationView');
 var _viewsPaginationViewDefault = _parcelHelpers.interopDefault(_viewsPaginationView);
+var _viewsBookmarksView = require('./views/bookmarksView');
+var _viewsBookmarksViewDefault = _parcelHelpers.interopDefault(_viewsBookmarksView);
 const controlRecipes = async function () {
   try {
     const id = window.location.hash.slice(1);
@@ -462,6 +464,7 @@ const controlRecipes = async function () {
     _viewsRecipeViewDefault.default.renderSpinner();
     // 0 Resolve View to mark selected search result
     _viewsResultsViewDefault.default.update(_model.getSearchResultsPage());
+    _viewsBookmarksViewDefault.default.update(_model.state.bookmarks);
     // 1) Load the recipe
     await _model.loadRecipe(id);
     // 2) Rendering the recipe
@@ -498,15 +501,24 @@ const controlServings = function (newServings) {
   // recipeView.render(model.state.recipe);
   _viewsRecipeViewDefault.default.update(_model.state.recipe);
 };
+const controlAddBookmark = function () {
+  // Add/Remove Bookmark
+  if (!_model.state.recipe.bookmarked) _model.addBookmark(_model.state.recipe); else if (_model.state.recipe.bookmarked) _model.deleteBookmark(_model.state.recipe.id);
+  // Update Recipe View
+  _viewsRecipeViewDefault.default.update(_model.state.recipe);
+  // Render bookmarks
+  _viewsBookmarksViewDefault.default.render(_model.state.bookmarks);
+};
 const init = function () {
   _viewsSearchViewDefault.default.addHandlerSearch(controlSearchResults);
   _viewsRecipeViewDefault.default.addHandlerRender(controlRecipes);
   _viewsPaginationViewDefault.default.addHandlerClick(controlPagination);
   _viewsRecipeViewDefault.default.addHandlerUpdateServings(controlServings);
+  _viewsRecipeViewDefault.default.addHandlerAddBookmark(controlAddBookmark);
 };
 init();
 
-},{"@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","core-js/stable":"1PFvP","regenerator-runtime/runtime":"62Qib","./views/recipeView":"9e6b9","./model":"1hp6y","./views/searchView":"3rYQ6","./views/resultsView":"17PYN","./views/paginationView":"5u5Fw"}],"5gA8y":[function(require,module,exports) {
+},{"@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","core-js/stable":"1PFvP","regenerator-runtime/runtime":"62Qib","./views/recipeView":"9e6b9","./model":"1hp6y","./views/searchView":"3rYQ6","./views/resultsView":"17PYN","./views/paginationView":"5u5Fw","./views/bookmarksView":"2EbNZ"}],"5gA8y":[function(require,module,exports) {
 "use strict";
 
 exports.interopDefault = function (a) {
@@ -12519,6 +12531,13 @@ class RecipeView extends _ViewDefault.default {
       if (updateTo > 0) handler(updateTo);
     });
   }
+  addHandlerAddBookmark(handler) {
+    this._parentElement.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn--bookmark');
+      if (!btn) return;
+      handler();
+    });
+  }
   _generateMarkup() {
     return `
       <figure class="recipe__fig">
@@ -12560,9 +12579,9 @@ class RecipeView extends _ViewDefault.default {
           <div class="recipe__user-generated">
           
           </div>
-          <button class="btn--round">
+          <button class="btn--round btn--bookmark">
             <svg class="">
-              <use href="${_urlImgIconsSvgDefault.default}#icon-bookmark-fill"></use>
+              <use href="${_urlImgIconsSvgDefault.default}#icon-bookmark${this._data.bookmarked ? '-fill' : ''}"></use>
             </svg>
           </button>
         </div>
@@ -13001,10 +13020,11 @@ class View {
   constructor() {
     _defineProperty(this, "_data", void 0);
   }
-  render(data) {
+  render(data, render = true) {
     if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
     this._data = data;
     const markup = this._generateMarkup();
+    if (!render) return markup;
     this._clear();
     this._parentElement.insertAdjacentHTML('afterbegin', markup);
   }
@@ -13137,6 +13157,12 @@ _parcelHelpers.export(exports, "getSearchResultsPage", function () {
 _parcelHelpers.export(exports, "updateServings", function () {
   return updateServings;
 });
+_parcelHelpers.export(exports, "addBookmark", function () {
+  return addBookmark;
+});
+_parcelHelpers.export(exports, "deleteBookmark", function () {
+  return deleteBookmark;
+});
 require('regenerator-runtime');
 var _config = require('./config');
 var _helpers = require('./helpers');
@@ -13147,7 +13173,8 @@ const state = {
     results: [],
     page: 1,
     resultPerPage: _config.NUM_OF_PAGES
-  }
+  },
+  bookmarks: []
 };
 const loadRecipe = async id => {
   try {
@@ -13163,6 +13190,7 @@ const loadRecipe = async id => {
       cookingTime: recipe.cooking_time,
       ingredients: recipe.ingredients
     };
+    state.recipe.bookmarked = state.bookmarks.some(b => b.id === id);
   } catch (err) {
     console.error(err.message);
     throw err;
@@ -13181,6 +13209,8 @@ const loadSearchResults = async function (query) {
         image: recipe.image_url
       };
     });
+    // reset the page to 1 after a search
+    state.search.page = 1;
   } catch (err) {
     console.error(err.message);
     throw err;
@@ -13197,6 +13227,24 @@ const updateServings = function (newServings) {
     ing.quantity = ing.quantity * newServings / state.recipe.servings;
   });
   state.recipe.servings = newServings;
+};
+const addBookmark = function (recipe) {
+  // Add to bookmark array
+  state.bookmarks.push(recipe);
+  // Mark the recipe as bookmark (icon)
+  if (recipe.id === state.recipe.id) {
+    state.recipe.bookmarked = true;
+  }
+};
+const deleteBookmark = function (id) {
+  // Find the index
+  const index = state.bookmarks.findIndex(el => el.id === id);
+  // Delete that recipe from bookmarks array
+  state.bookmarks.splice(index, 1);
+  // Mark the recipe as NOT bookmark (icon)
+  if (id === state.recipe.id) {
+    state.recipe.bookmarked = false;
+  }
 };
 
 },{"regenerator-runtime":"62Qib","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","./config":"6pr2F","./helpers":"581KF"}],"6pr2F":[function(require,module,exports) {
@@ -13283,7 +13331,8 @@ var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
 _parcelHelpers.defineInteropFlag(exports);
 var _View = require('./View');
 var _ViewDefault = _parcelHelpers.interopDefault(_View);
-require('url:../../img/icons.svg');
+var _previewView = require('./previewView');
+var _previewViewDefault = _parcelHelpers.interopDefault(_previewView);
 function _defineProperty(obj, key, value) {
   if ((key in obj)) {
     Object.defineProperty(obj, key, {
@@ -13305,28 +13354,53 @@ class ResultsView extends _ViewDefault.default {
     _defineProperty(this, "_successMessage", '');
   }
   _generateMarkup() {
-    return this._data.map(this._generateMarkupPreview).join('');
+    return this._data.map(result => _previewViewDefault.default.render(result, false)).join('');
   }
-  _generateMarkupPreview(result) {
+}
+exports.default = new ResultsView();
+
+},{"./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","./previewView":"3QsRt"}],"3QsRt":[function(require,module,exports) {
+var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
+_parcelHelpers.defineInteropFlag(exports);
+var _View = require('./View');
+var _ViewDefault = _parcelHelpers.interopDefault(_View);
+require('url:../../img/icons.svg');
+function _defineProperty(obj, key, value) {
+  if ((key in obj)) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
+}
+class PreviewView extends _ViewDefault.default {
+  constructor(...args) {
+    super(...args);
+    _defineProperty(this, "_parentElement", '');
+  }
+  _generateMarkup(result) {
     const id = window.location.hash.slice(1);
-    console.log(id);
-    console.log(result.id);
     return `<li class="preview">
-            <a class="preview__link" ${result.id === id ? 'preview__link--active' : ''}  href="#${result.id}">
+            <a class="preview__link" ${this._data.id === id ? 'preview__link--active' : ''}  href="#${this._data.id}">
               <figure class="preview__fig">
-                <img src="${result.image}" alt="Test" />
+                <img src="${this._data.image}" alt="Test" />
               </figure>
               <div class="preview__data">
-                <h4 class="preview__title">${result.title}</h4>
-                <p class="preview__publisher">${result.publisher}</p>  
+                <h4 class="preview__title">${this._data.title}</h4>
+                <p class="preview__publisher">${this._data.publisher}</p>  
               </div>
             </a>
           </li>`;
   }
 }
-exports.default = new ResultsView();
+exports.default = new PreviewView();
 
-},{"./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","url:../../img/icons.svg":"3t5dV"}],"5u5Fw":[function(require,module,exports) {
+},{"./View":"48jhP","url:../../img/icons.svg":"3t5dV","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y"}],"5u5Fw":[function(require,module,exports) {
 var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
 _parcelHelpers.defineInteropFlag(exports);
 var _urlImgIconsSvg = require('url:../../img/icons.svg');
@@ -13402,6 +13476,39 @@ class PaginationView extends _ViewDefault.default {
 }
 exports.default = new PaginationView();
 
-},{"url:../../img/icons.svg":"3t5dV","./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y"}]},["7BONy","3miIZ"], "3miIZ", "parcelRequirea7c1")
+},{"url:../../img/icons.svg":"3t5dV","./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y"}],"2EbNZ":[function(require,module,exports) {
+var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
+_parcelHelpers.defineInteropFlag(exports);
+var _View = require('./View');
+var _ViewDefault = _parcelHelpers.interopDefault(_View);
+var _previewView = require('./previewView');
+var _previewViewDefault = _parcelHelpers.interopDefault(_previewView);
+function _defineProperty(obj, key, value) {
+  if ((key in obj)) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
+}
+class BookmarksView extends _ViewDefault.default {
+  constructor(...args) {
+    super(...args);
+    _defineProperty(this, "_parentElement", document.querySelector('.bookmarks__list'));
+    _defineProperty(this, "_errorMessage", 'No bookmarks found');
+    _defineProperty(this, "_successMessage", '');
+  }
+  _generateMarkup() {
+    return this._data.map(bookmark => _previewViewDefault.default.render(bookmark, false)).join('');
+  }
+}
+exports.default = new BookmarksView();
+
+},{"./View":"48jhP","@parcel/transformer-js/lib/esmodule-helpers.js":"5gA8y","./previewView":"3QsRt"}]},["7BONy","3miIZ"], "3miIZ", "parcelRequirea7c1")
 
 //# sourceMappingURL=index.250b04c7.js.map
